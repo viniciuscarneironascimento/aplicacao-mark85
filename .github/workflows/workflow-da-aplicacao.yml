@@ -31,7 +31,7 @@ jobs:
           RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
           LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[0].conclusion')
 
-          if [[ "$LATEST_RUN_STATUS" != "Success" ]]; then
+          if [[ "$LATEST_RUN_STATUS" != "succeeded" ]]; then
             echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
             exit 1
           fi
