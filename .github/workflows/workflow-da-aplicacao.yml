@@ -1,39 +1,67 @@
-- name: Aguardar execução da pipeline de testes
-run: |
-  STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
-  MAX_ATTEMPTS=20
-  ATTEMPT=0
-  
-  echo "Aguardando 30 segundos antes da primeira verificação..."
-  sleep 30  # Espera inicial para dar tempo do workflow aparecer na API
+name: Deploy da Aplicacao e Testes Cypress
 
-  while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" $STATUS_URL)
-    
-    # Extrai o primeiro workflow válido da resposta (ignora casos onde a API ainda não listou)
-    LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs | map(select(.status != "queued")) | .[0].conclusion')
+on:
+  push:
+    branches:
+      - main  # Dispara quando houver um push na branch main da aplicação
 
-    if [[ -z "$LATEST_RUN_STATUS" || "$LATEST_RUN_STATUS" == "null" ]]; then
-      echo "Tentativa $((ATTEMPT+1)): Nenhuma pipeline encontrada ainda. Tentando novamente..."
-    else
-      echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
-    fi
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-    # Se o status for sucesso, encerra o loop
-    if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
-      echo "✅ Pipeline de testes finalizada com sucesso!"
-      break
-    elif [[ "$LATEST_RUN_STATUS" == "failure" ]]; then
-      echo "❌ A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
-      exit 1
-    fi
+    steps:
+      - name: Checkout do código da aplicação
+        uses: actions/checkout@v3
 
-    ATTEMPT=$((ATTEMPT+1))
-    sleep 30  # Aguarda 30 segundos antes de tentar novamente
-  done
+      - name: Simular Deploy da Aplicação
+        run: echo "Aplicação implantada com sucesso!"
 
-  if [[ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]]; then
-    echo "⏳ Tempo limite excedido esperando a pipeline de testes. Interrompendo o deploy!"
-    exit 1
-  fi
+      - name: Disparar casos de testes do repositório de testes (Cypress)
+        id: trigger-tests
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          repository: viniciuscarneironascimento/mark85-cypress-api-papito
+          event-type: run-cypress-tests
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}
 
+      - name: Aguardar execução da pipeline de testes
+        run: |
+          STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
+          MAX_ATTEMPTS=20
+          ATTEMPT=0
+          
+          echo "Aguardando 30 segundos antes da primeira verificação..."
+          sleep 30  # Espera inicial para dar tempo do workflow aparecer na API
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" $STATUS_URL)
+            
+            # Extrai o primeiro workflow válido da resposta (ignora casos onde a API ainda não listou)
+            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs | map(select(.status != "queued")) | .[0].conclusion')
+
+            if [[ -z "$LATEST_RUN_STATUS" || "$LATEST_RUN_STATUS" == "null" ]]; then
+              echo "Tentativa $((ATTEMPT+1)): Nenhuma pipeline encontrada ainda. Tentando novamente..."
+            else
+              echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
+            fi
+
+            # Se o status for sucesso, encerra o loop
+            if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
+              echo "✅ Pipeline de testes finalizada com sucesso!"
+              break
+            elif [[ "$LATEST_RUN_STATUS" == "failure" ]]; then
+              echo "❌ A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
+              exit 1
+            fi
+
+            ATTEMPT=$((ATTEMPT+1))
+            sleep 30  # Aguarda 30 segundos antes de tentar novamente
+          done
+
+          if [[ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]]; then
+            echo "⏳ Tempo limite excedido esperando a pipeline de testes. Interrompendo o deploy!"
+            exit 1
+          fi
+
+      - name: Deploy Final
+        run: echo "Deploy finalizado com sucesso!"
