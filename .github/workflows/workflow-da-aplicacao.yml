@@ -29,37 +29,37 @@ jobs:
           STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
           MAX_ATTEMPTS=20
           ATTEMPT=0
-          
-          echo "Aguardando 30 segundos antes da primeira verificação..."
-          sleep 30  # Espera inicial para dar tempo do workflow aparecer na API
+
+          echo "Aguardando execução da pipeline de testes..."
 
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            sleep 30  # Aguarda 30 segundos antes de verificar novamente
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" $STATUS_URL)
-            
-            # Extrai o primeiro workflow válido da resposta (ignora casos onde a API ainda não listou)
-            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs | map(select(.status != "queued")) | .[0].conclusion')
 
-            if [[ -z "$LATEST_RUN_STATUS" || "$LATEST_RUN_STATUS" == "null" ]]; then
-              echo "Tentativa $((ATTEMPT+1)): Nenhuma pipeline encontrada ainda. Tentando novamente..."
-            else
-              echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
+            # Verifica se a resposta contém execuções válidas
+            if [[ -z "$RESPONSE" || "$RESPONSE" == "null" ]]; then
+              echo "Tentativa $((ATTEMPT+1)): Nenhuma resposta válida da API. Tentando novamente..."
+              ATTEMPT=$((ATTEMPT+1))
+              continue
             fi
 
-            # Se o status for sucesso, encerra o loop
+            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs | first | .conclusion // empty')
+
+            echo "Tentativa $((ATTEMPT+1)): Status atual - ${LATEST_RUN_STATUS:-'Indisponível'}"
+
             if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
-              echo "✅ Pipeline de testes finalizada com sucesso!"
+              echo "Pipeline de testes finalizada com sucesso!"
               break
             elif [[ "$LATEST_RUN_STATUS" == "failure" ]]; then
-              echo "❌ A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
+              echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
               exit 1
             fi
 
             ATTEMPT=$((ATTEMPT+1))
-            sleep 30  # Aguarda 30 segundos antes de tentar novamente
           done
 
           if [[ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]]; then
-            echo "⏳ Tempo limite excedido esperando a pipeline de testes. Interrompendo o deploy!"
+            echo "Tempo limite excedido esperando a pipeline de testes. Interrompendo o deploy!"
             exit 1
           fi
 
