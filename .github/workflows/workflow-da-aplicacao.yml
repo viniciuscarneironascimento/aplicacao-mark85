@@ -27,16 +27,15 @@ jobs:
       - name: Aguardar execução da pipeline de testes
         run: |
           echo "Aguardando execução da pipeline de testes..."
+          
           STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
           MAX_ATTEMPTS=30
           ATTEMPT=0
-          TEST_RUN_ID=""
           
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             sleep 30  # Aguarda 30 segundos antes de verificar novamente
             
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
-            TEST_RUN_ID=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress") | .id' | head -n 1)
             LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress") | .conclusion' | head -n 1)
 
             echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
@@ -45,15 +44,7 @@ jobs:
               echo "Pipeline de testes finalizada com sucesso!"
               break
             elif [[ "$LATEST_RUN_STATUS" == "failure" || "$LATEST_RUN_STATUS" == "cancelled" ]]; then
-              echo "A pipeline de testes no Cypress falhou. Obtendo logs de erro..."
-              
-              if [[ -n "$TEST_RUN_ID" ]]; then
-                LOGS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/$TEST_RUN_ID/logs"
-                curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" "$LOGS_URL" -o cypress_logs.zip
-                unzip -p cypress_logs.zip > cypress_logs.txt || echo "Falha ao extrair logs."
-                echo "Logs do Cypress:" 
-                cat cypress_logs.txt
-              fi
+              echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
               exit 1
             fi
 
