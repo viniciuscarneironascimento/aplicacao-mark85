@@ -58,7 +58,7 @@ jobs:
 
       - name: Obter logs da pipeline de testes
         run: |
-          CYPRESS_RUN_ID=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" \
+          CYPRESS_RUN_ID=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" \
             "https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs" | \
             jq -r '.workflow_runs[0].id')
 
@@ -69,7 +69,7 @@ jobs:
 
           LOGS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/$CYPRESS_RUN_ID/logs"
           echo "Baixando logs da execução dos testes Cypress..."
-          curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" $LOGS_URL | jq -r
+          curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $LOGS_URL | jq -r
 
       - name: Deploy Final
         run: echo "Deploy finalizado com sucesso!"
