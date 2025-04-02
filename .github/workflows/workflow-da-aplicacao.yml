@@ -49,7 +49,7 @@ jobs:
               
               if [[ -n "$TEST_RUN_ID" ]]; then
                 LOGS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/$TEST_RUN_ID/logs"
-                curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" "$LOGS_URL" -o cypress_logs.zip
+                curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" "$LOGS_URL" -o cypress_logs.zip
                 unzip -p cypress_logs.zip > cypress_logs.txt || echo "Falha ao extrair logs."
                 echo "Logs do Cypress:" 
                 cat cypress_logs.txt
