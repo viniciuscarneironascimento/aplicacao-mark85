@@ -1,0 +1,25 @@
+name: Deploy da Aplicação e Testes Cypress
+
+on:
+  push:
+    branches:
+      - main  # Dispara quando houver um push na branch main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código da aplicação
+        uses: actions/checkout@v3
+
+      - name: Simular Deploy da Aplicação (pode ser outro comando real)
+        run: echo "Aplicação implantada com sucesso!"
+
+      - name: Disparar testes no repositório de testes (Cypress)
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          repository: viniciuscarneironascimento/mark85-cypress-api-papito  # Repositório de testes
+          event-type: run-cypress-tests  # Tipo de evento para acionar o workflow
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}  # Token do repositório da aplicação
+
