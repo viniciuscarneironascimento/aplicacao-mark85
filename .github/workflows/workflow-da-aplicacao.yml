@@ -36,7 +36,7 @@ jobs:
 
             echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
 
-            if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
+            if [[ "$LATEST_RUN_STATUS" == "completed" ]]; then
               echo "Pipeline de testes finalizada com sucesso!"
               break
             elif [[ "$LATEST_RUN_STATUS" == "failure" ]]; then
