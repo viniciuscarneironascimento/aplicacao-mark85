@@ -27,15 +27,15 @@ jobs:
       - name: Aguardar execução da pipeline de testes
         run: |
           echo "Aguardando execução da pipeline de testes..."
-          
           STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
           MAX_ATTEMPTS=30
           ATTEMPT=0
-          
+          TEST_RUN_ID=""
+
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             sleep 30  # Aguarda 30 segundos antes de verificar novamente
-            
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
+            TEST_RUN_ID=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress") | .id' | head -n 1)
             LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress") | .conclusion' | head -n 1)
 
             echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
@@ -44,7 +44,9 @@ jobs:
               echo "Pipeline de testes finalizada com sucesso!"
               break
             elif [[ "$LATEST_RUN_STATUS" == "failure" || "$LATEST_RUN_STATUS" == "cancelled" ]]; then
-              echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
+              echo "A pipeline de testes no Cypress falhou. Obtendo logs..."
+              LOGS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/$TEST_RUN_ID/logs"
+              curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" "$LOGS_URL"
               exit 1
             fi
 
@@ -55,21 +57,6 @@ jobs:
             echo "Tempo limite excedido esperando a pipeline de testes. Interrompendo o deploy!"
             exit 1
           fi
-
-      - name: Obter logs da pipeline de testes
-        run: |
-          CYPRESS_RUN_ID=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" \
-            "https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs" | \
-            jq -r '.workflow_runs[0].id')
-
-          if [[ -z "$CYPRESS_RUN_ID" || "$CYPRESS_RUN_ID" == "null" ]]; then
-            echo "Erro: Não foi possível obter o ID da execução da pipeline de testes."
-            exit 1
-          fi
-
-          LOGS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/$CYPRESS_RUN_ID/logs"
-          echo "Baixando logs da execução dos testes Cypress..."
-          curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $LOGS_URL | jq -r
 
       - name: Deploy Final
         run: echo "Deploy finalizado com sucesso!"
