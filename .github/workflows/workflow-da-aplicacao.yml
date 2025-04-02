@@ -26,47 +26,26 @@ jobs:
 
       - name: Aguardar execução da pipeline de testes
         run: |
-          STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
-          MAX_ATTEMPTS=20
-          ATTEMPT=0
-
           echo "Aguardando execução da pipeline de testes..."
-
+          
+          STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             sleep 30  # Aguarda 30 segundos antes de verificar novamente
-            RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" $STATUS_URL)
+            
+            RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
+            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress") | .conclusion' | head -n 1)
 
-            # Verifica se a resposta contém execuções válidas
-            WORKFLOW_RUNS=$(echo "$RESPONSE" | jq -r '.workflow_runs // empty')
+            echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
 
-            if [[ -z "$WORKFLOW_RUNS" || "$WORKFLOW_RUNS" == "null" ]]; then
-              echo "Tentativa $((ATTEMPT+1)): Nenhuma execução de pipeline encontrada. Tentando novamente..."
-              ATTEMPT=$((ATTEMPT+1))
-              continue
-            fi
-
-            # Filtrar apenas a execução mais recente da branch "main"
-            LATEST_RUN=$(echo "$WORKFLOW_RUNS" | jq -r '[.[] | select(.head_branch == "main" and .event == "repository_dispatch")] | first // empty')
-
-            if [[ -z "$LATEST_RUN" ]]; then
-              echo "Tentativa $((ATTEMPT+1)): Nenhuma execução relevante encontrada. Tentando novamente..."
-              ATTEMPT=$((ATTEMPT+1))
-              continue
-            fi
-
-            STATUS=$(echo "$LATEST_RUN" | jq -r '.status // empty')
-            CONCLUSION=$(echo "$LATEST_RUN" | jq -r '.conclusion // empty')
-
-            echo "Tentativa $((ATTEMPT+1)): Status atual - ${STATUS:-'Indisponível'}, Conclusão - ${CONCLUSION:-'Indisponível'}"
-
-            if [[ "$STATUS" == "completed" ]]; then
-              if [[ "$CONCLUSION" == "success" ]]; then
-                echo "Pipeline de testes finalizada com sucesso!"
-                break
-              elif [[ "$CONCLUSION" == "failure" ]]; then
-                echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
-                exit 1
-              fi
+            if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
+              echo "Pipeline de testes finalizada com sucesso!"
+              break
+            elif [[ "$LATEST_RUN_STATUS" == "failure" || "$LATEST_RUN_STATUS" == "cancelled" ]]; then
+              echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
+              exit 1
             fi
 
             ATTEMPT=$((ATTEMPT+1))
