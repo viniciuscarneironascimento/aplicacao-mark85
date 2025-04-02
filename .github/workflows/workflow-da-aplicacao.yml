@@ -26,15 +26,25 @@ jobs:
 
       - name: Aguardar execução da pipeline de testes
         run: |
-          sleep 30  # Aguarda alguns segundos antes de verificar o status da execução
-          STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
-          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
-          LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[0].conclusion')
+          for i in {1..10}; do
+            STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
+            RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
+            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[0].conclusion')
 
-          if [[ "$LATEST_RUN_STATUS" != "completed" ]]; then
-            echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
-            exit 1
-          fi
+            if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
+              echo "Testes passaram com sucesso!"
+              exit 0
+            elif [[ "$LATEST_RUN_STATUS" == "failure" ]]; then
+              echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
+              exit 1
+            fi
+
+            echo "Aguardando conclusão dos testes..."
+            sleep 30
+          done
+
+          echo "Timeout ao aguardar a conclusão dos testes."
+          exit 1
 
       - name: Deploy Final
         run: echo "Deploy finalizado com sucesso!"
