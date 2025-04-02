@@ -3,7 +3,7 @@ name: Deploy da Aplicação e Testes Cypress
 on:
   push:
     branches:
-      - main  # Dispara quando houver um push na branch main
+      - main  # Dispara quando houver um push na branch main da aplicação
 
 jobs:
   deploy:
