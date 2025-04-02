@@ -34,9 +34,9 @@ jobs:
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" $STATUS_URL)
             LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[0].conclusion')
 
-            echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
+            echo "Tentativa $((ATTEMPT+1))/$MAX_ATTEMPTS: Status atual - $LATEST_RUN_STATUS"
 
-            if [[ "$LATEST_RUN_STATUS" == "completed" ]]; then
+            if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
               echo "Pipeline de testes finalizada com sucesso!"
               break
             elif [[ "$LATEST_RUN_STATUS" == "failure" ]]; then
@@ -54,3 +54,4 @@ jobs:
 
       - name: Deploy Final
         run: echo "Deploy finalizado com sucesso!"
+
