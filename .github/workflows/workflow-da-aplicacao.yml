@@ -43,16 +43,22 @@ jobs:
               continue
             fi
 
-            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs | first | .conclusion // empty')
+            # Filtrar apenas a execução mais recente da branch "main"
+            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs | map(select(.head_branch == "main" and .event == "repository_dispatch")) | first | {status, conclusion}')
 
-            echo "Tentativa $((ATTEMPT+1)): Status atual - ${LATEST_RUN_STATUS:-'Indisponível'}"
+            STATUS=$(echo "$LATEST_RUN_STATUS" | jq -r '.status // empty')
+            CONCLUSION=$(echo "$LATEST_RUN_STATUS" | jq -r '.conclusion // empty')
 
-            if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
-              echo "Pipeline de testes finalizada com sucesso!"
-              break
-            elif [[ "$LATEST_RUN_STATUS" == "failure" ]]; then
-              echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
-              exit 1
+            echo "Tentativa $((ATTEMPT+1)): Status atual - ${STATUS:-'Indisponível'}, Conclusão - ${CONCLUSION:-'Indisponível'}"
+
+            if [[ "$STATUS" == "completed" ]]; then
+              if [[ "$CONCLUSION" == "success" ]]; then
+                echo "Pipeline de testes finalizada com sucesso!"
+                break
+              elif [[ "$CONCLUSION" == "failure" ]]; then
+                echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
+                exit 1
+              fi
             fi
 
             ATTEMPT=$((ATTEMPT+1))
