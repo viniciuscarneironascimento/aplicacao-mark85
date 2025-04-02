@@ -56,5 +56,20 @@ jobs:
             exit 1
           fi
 
+      - name: Obter logs da pipeline de testes
+        run: |
+          CYPRESS_RUN_ID=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" \
+            "https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs" | \
+            jq -r '.workflow_runs[0].id')
+
+          if [[ -z "$CYPRESS_RUN_ID" || "$CYPRESS_RUN_ID" == "null" ]]; then
+            echo "Erro: Não foi possível obter o ID da execução da pipeline de testes."
+            exit 1
+          fi
+
+          LOGS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/$CYPRESS_RUN_ID/logs"
+          echo "Baixando logs da execução dos testes Cypress..."
+          curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" $LOGS_URL | jq -r
+
       - name: Deploy Final
         run: echo "Deploy finalizado com sucesso!"
