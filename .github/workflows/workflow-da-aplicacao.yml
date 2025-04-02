@@ -37,17 +37,25 @@ jobs:
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}" $STATUS_URL)
 
             # Verifica se a resposta contém execuções válidas
-            if [[ -z "$RESPONSE" || "$RESPONSE" == "null" ]]; then
-              echo "Tentativa $((ATTEMPT+1)): Nenhuma resposta válida da API. Tentando novamente..."
+            WORKFLOW_RUNS=$(echo "$RESPONSE" | jq -r '.workflow_runs // empty')
+
+            if [[ -z "$WORKFLOW_RUNS" || "$WORKFLOW_RUNS" == "null" ]]; then
+              echo "Tentativa $((ATTEMPT+1)): Nenhuma execução de pipeline encontrada. Tentando novamente..."
               ATTEMPT=$((ATTEMPT+1))
               continue
             fi
 
             # Filtrar apenas a execução mais recente da branch "main"
-            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs | map(select(.head_branch == "main" and .event == "repository_dispatch")) | first | {status, conclusion}')
+            LATEST_RUN=$(echo "$WORKFLOW_RUNS" | jq -r '[.[] | select(.head_branch == "main" and .event == "repository_dispatch")] | first // empty')
 
-            STATUS=$(echo "$LATEST_RUN_STATUS" | jq -r '.status // empty')
-            CONCLUSION=$(echo "$LATEST_RUN_STATUS" | jq -r '.conclusion // empty')
+            if [[ -z "$LATEST_RUN" ]]; then
+              echo "Tentativa $((ATTEMPT+1)): Nenhuma execução relevante encontrada. Tentando novamente..."
+              ATTEMPT=$((ATTEMPT+1))
+              continue
+            fi
+
+            STATUS=$(echo "$LATEST_RUN" | jq -r '.status // empty')
+            CONCLUSION=$(echo "$LATEST_RUN" | jq -r '.conclusion // empty')
 
             echo "Tentativa $((ATTEMPT+1)): Status atual - ${STATUS:-'Indisponível'}, Conclusão - ${CONCLUSION:-'Indisponível'}"
 
