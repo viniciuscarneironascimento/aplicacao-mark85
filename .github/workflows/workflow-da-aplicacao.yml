@@ -67,6 +67,7 @@ jobs:
           workflow: executar-testes-cypress.yml
           name: cypress-mochawesome-report
           path: mochawesome-reports
+          run_id: latest
       
       - name: Baixar link do Cypress Cloud
         uses: dawidd6/action-download-artifact@v2
@@ -76,6 +77,13 @@ jobs:
           workflow: executar-testes-cypress.yml
           name: cypress-cloud-url
           path: ./
+          run_id: latest
       
       - name: Exibir link do Cypress Cloud
-        run: cat cypress-cloud-url.txt
+        run: |
+          if [ -f cypress-cloud-url.txt ]; then
+            cat cypress-cloud-url.txt
+          else
+            echo "Arquivo cypress-cloud-url.txt não encontrado!"
+            exit 1
+          fi
