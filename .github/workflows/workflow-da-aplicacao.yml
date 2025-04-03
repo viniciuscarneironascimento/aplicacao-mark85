@@ -82,8 +82,9 @@ jobs:
       - name: Exibir link do Cypress Cloud
         run: |
           if [ -f cypress-cloud-url.txt ]; then
+            echo "Link do Cypress Cloud:"
             cat cypress-cloud-url.txt
           else
-            echo "Arquivo cypress-cloud-url.txt não encontrado!"
+            echo "Erro: Arquivo cypress-cloud-url.txt não encontrado!"
             exit 1
           fi
