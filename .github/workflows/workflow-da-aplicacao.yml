@@ -58,3 +58,47 @@ jobs:
 
       - name: Deploy Final
         run: echo "Deploy finalizado com sucesso!"
+
+      - name: Baixar relatórios do Mochawesome
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}
+          repository: viniciuscarneironascimento/mark85-cypress-api-papito
+          workflow: executar-testes-cypress.yml
+          name: cypress-mochawesome-report
+          path: mochawesome-reports
+          run_id: latest
+
+      - name: Baixar link do Cypress Cloud
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}
+          repository: viniciuscarneironascimento/mark85-cypress-api-papito
+          workflow: executar-testes-cypress.yml
+          name: cypress-cloud-url
+          path: ./
+          run_id: latest
+
+      - name: Exibir link do Cypress Cloud
+        run: |
+          if [ -f cypress-cloud-url.txt ]; then
+            CYPRESS_CLOUD_URL=$(cat cypress-cloud-url.txt)
+            echo "Link do Cypress Cloud: $CYPRESS_CLOUD_URL"
+          else
+            echo "ERRO: Arquivo cypress-cloud-url.txt não encontrado!"
+            exit 1
+          fi
+
+      - name: Obter URL de Download dos Artefatos
+        run: |
+          API_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/artifacts"
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $API_URL)
+
+          MOCHAWESOME_URL=$(echo "$RESPONSE" | jq -r '.artifacts[] | select(.name=="cypress-mochawesome-report") | .archive_download_url')
+
+          if [[ -n "$MOCHAWESOME_URL" ]]; then
+            echo "Artifact Download URL (Mochawesome): $MOCHAWESOME_URL"
+          else
+            echo "ERRO: Não foi possível obter a URL do relatório Mochawesome!"
+            exit 1
+          fi
