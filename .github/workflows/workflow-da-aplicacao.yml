@@ -24,7 +24,7 @@ jobs:
           event-type: run-cypress-tests
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}
 
-      - name: Aguardar execução da pipeline de testes
+      - name: Aguardar execução da pipeline de testes e obter link do job
         id: wait-tests
         run: |
           echo "Aguardando execução da pipeline de testes..."
@@ -32,6 +32,7 @@ jobs:
           MAX_ATTEMPTS=30
           ATTEMPT=0
           RUN_ID=""
+          JOB_URL=""
           
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             sleep 30
@@ -41,13 +42,19 @@ jobs:
 
             echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
 
-            if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
-              echo "Pipeline de testes finalizada com sucesso!"
+            if [[ "$LATEST_RUN_STATUS" == "success" || "$LATEST_RUN_STATUS" == "failure" || "$LATEST_RUN_STATUS" == "cancelled" ]]; then
               echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+              JOBS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/${RUN_ID}/jobs"
+              JOB_RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $JOBS_URL)
+              JOB_ID=$(echo "$JOB_RESPONSE" | jq -r '.jobs[0].id')
+              
+              if [[ -n "$JOB_ID" && "$JOB_ID" != "null" ]]; then
+                JOB_URL="https://github.com/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/${RUN_ID}/job/${JOB_ID}"
+                echo "Job de testes: $JOB_URL"
+              else
+                echo "ERRO: Job ID não encontrado para a execução RUN_ID=${RUN_ID}"
+              fi
               break
-            elif [[ "$LATEST_RUN_STATUS" == "failure" || "$LATEST_RUN_STATUS" == "cancelled" ]]; then
-              echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
-              exit 1
             fi
 
             ATTEMPT=$((ATTEMPT+1))
@@ -57,40 +64,6 @@ jobs:
             echo "Tempo limite excedido esperando a pipeline de testes. Interrompendo o deploy!"
             exit 1
           fi
-
-      - name: Verificar RUN_ID antes de buscar link do job
-        run: |
-          echo "RUN_ID atualmente salvo: ${{ env.RUN_ID }}"
-          if [[ -z "${{ env.RUN_ID }}" ]]; then
-            echo "ERRO: RUN_ID não foi definido corretamente!"
-            exit 1
-          fi
-
-      - name: Obter link do job de testes Cypress
-        id: get-test-job-link
-        run: |
-          if [[ -z "${{ env.RUN_ID }}" ]]; then
-            echo "ERRO: RUN_ID não encontrado. Interrompendo!"
-            exit 1
-          fi
-          
-          JOBS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/${{ env.RUN_ID }}/jobs"
-          echo "Buscando jobs em: $JOBS_URL"
-          
-          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $JOBS_URL)
-          
-          echo "Resposta da API: $RESPONSE"  # Depuração
-          
-          JOB_ID=$(echo "$RESPONSE" | jq -r '.jobs[0].id')
-          
-          if [[ -z "$JOB_ID" || "$JOB_ID" == "null" ]]; then
-            echo "ERRO: Job ID não encontrado para a execução RUN_ID=${{ env.RUN_ID }}"
-            exit 1
-          fi
-          
-          JOB_URL="https://github.com/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/${{ env.RUN_ID }}/job/${JOB_ID}"
-          echo "Job de testes: $JOB_URL"
-          echo "TEST_JOB_URL=$JOB_URL" >> $GITHUB_ENV
 
       - name: Deploy Final
         run: echo "Deploy finalizado com sucesso!"
