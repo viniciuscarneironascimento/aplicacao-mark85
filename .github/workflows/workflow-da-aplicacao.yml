@@ -55,7 +55,7 @@ jobs:
       - name: Baixar relatórios do Mochawesome
         uses: dawidd6/action-download-artifact@v2
         with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN_TEST_CYPRESS }}
           repo: viniciuscarneironascimento/mark85-cypress-api-papito
           workflow: workflow-do-cypress.yml
           name: cypress-mochawesome-report
