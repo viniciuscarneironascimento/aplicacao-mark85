@@ -58,6 +58,11 @@ jobs:
             exit 1
           fi
 
+      
+
+      - name: Deploy Final
+        run: echo "Deploy finalizado com sucesso!"
+
       - name: Obter link do job de testes Cypress
         id: get-test-job-link
         run: |
@@ -74,12 +79,6 @@ jobs:
           JOB_URL="https://github.com/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/${{ env.RUN_ID }}/job/${JOB_ID}"
           echo "Job de testes: $JOB_URL"
           echo "TEST_JOB_URL=$JOB_URL" >> $GITHUB_ENV
-
-      - name: Exibir link do job de testes
-        run: echo "Acesse o job dos testes Cypress: ${{ env.TEST_JOB_URL }}"
-
-      - name: Deploy Final
-        run: echo "Deploy finalizado com sucesso!"
 
       - name: Baixar relatórios do Mochawesome
         uses: dawidd6/action-download-artifact@v2
