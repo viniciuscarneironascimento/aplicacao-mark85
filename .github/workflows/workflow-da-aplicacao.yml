@@ -32,7 +32,8 @@ jobs:
           MAX_ATTEMPTS=30
           ATTEMPT=0
           RUN_ID=""
-          
+          TESTS_FAILED=0
+
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             sleep 30
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
@@ -47,7 +48,8 @@ jobs:
               break
             elif [[ "$LATEST_RUN_STATUS" == "failure" || "$LATEST_RUN_STATUS" == "cancelled" ]]; then
               echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
-              exit 1
+              TESTS_FAILED=1
+              break
             fi
 
             ATTEMPT=$((ATTEMPT+1))
@@ -55,8 +57,10 @@ jobs:
 
           if [[ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]]; then
             echo "Tempo limite excedido esperando a pipeline de testes. Interrompendo o deploy!"
-            exit 1
+            TESTS_FAILED=1
           fi
+
+          echo "TESTS_FAILED=$TESTS_FAILED" >> $GITHUB_ENV
 
       - name: Verificar RUN_ID antes de buscar link do job
         run: |
@@ -79,7 +83,7 @@ jobs:
           
           RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $JOBS_URL)
           
-          echo "Resposta da API: $RESPONSE"  # Depuração
+          echo "Resposta da API: $RESPONSE"
           
           JOB_ID=$(echo "$RESPONSE" | jq -r '.jobs[0].id')
           
@@ -92,9 +96,8 @@ jobs:
           echo "Job de testes: $JOB_URL"
           echo "TEST_JOB_URL=$JOB_URL" >> $GITHUB_ENV
 
-
-
       - name: Deploy Final
+        if: env.TESTS_FAILED == '0'
         run: echo "Deploy finalizado com sucesso!"
 
       - name: Baixar relatórios do Mochawesome
