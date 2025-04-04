@@ -1,5 +1,3 @@
-autulize no arquivo YML abaixo:
-
 name: Deploy da Aplicacao e Testes Cypress
 
 on:
