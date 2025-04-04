@@ -33,7 +33,7 @@ jobs:
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             sleep 30
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
-            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress") | .conclusion' | head -n 1)
+            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress" and .status == "completed") | .conclusion' | head -n 1)
             echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
             if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
               echo "Pipeline de testes finalizada com sucesso!"
@@ -60,7 +60,7 @@ jobs:
           workflow: workflow-do-cypress.yml
           name: cypress-mochawesome-report
           path: mochawesome-reports
-          run_id: latest
+          check_artifacts: true
 
       - name: Baixar link do Cypress Cloud
         uses: dawidd6/action-download-artifact@v2
@@ -70,7 +70,7 @@ jobs:
           workflow: workflow-do-cypress.yml
           name: cypress-cloud-url
           path: ./
-          run_id: latest
+          check_artifacts: true
 
       - name: Exibir link do Cypress Cloud
         run: |
