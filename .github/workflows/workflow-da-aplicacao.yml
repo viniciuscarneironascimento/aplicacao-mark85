@@ -61,19 +61,30 @@ jobs:
       - name: Obter link do job de testes Cypress
         id: get-test-job-link
         run: |
-          JOBS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/${{ env.RUN_ID }}/jobs"
-          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $JOBS_URL)
-            
-          JOB_ID=$(echo "$RESPONSE" | jq -r '.jobs[0].id')
-            
-          if [[ -z "$JOB_ID" || "$JOB_ID" == "null" ]]; then
-            echo "ERRO: Job ID não encontrado para a execução RUN_ID=$RUN_ID"
+          if [[ -z "${{ env.RUN_ID }}" ]]; then
+            echo "ERRO: RUN_ID não encontrado. Interrompendo!"
             exit 1
           fi
-            
+          
+          JOBS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/${{ env.RUN_ID }}/jobs"
+          echo "Buscando jobs em: $JOBS_URL"
+          
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $JOBS_URL)
+          
+          echo "Resposta da API: $RESPONSE"  # Depuração
+          
+          JOB_ID=$(echo "$RESPONSE" | jq -r '.jobs[0].id')
+          
+          if [[ -z "$JOB_ID" || "$JOB_ID" == "null" ]]; then
+            echo "ERRO: Job ID não encontrado para a execução RUN_ID=${{ env.RUN_ID }}"
+            exit 1
+          fi
+          
           JOB_URL="https://github.com/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs/${{ env.RUN_ID }}/job/${JOB_ID}"
           echo "Job de testes: $JOB_URL"
           echo "TEST_JOB_URL=$JOB_URL" >> $GITHUB_ENV
+
+
 
       - name: Deploy Final
         run: echo "Deploy finalizado com sucesso!"
