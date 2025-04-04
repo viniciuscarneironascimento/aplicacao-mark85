@@ -54,6 +54,11 @@ jobs:
               else
                 echo "ERRO: Job ID não encontrado para a execução RUN_ID=${RUN_ID}"
               fi
+
+              if [[ "$LATEST_RUN_STATUS" == "failure" ]]; then
+                echo "Os testes falharam. Interrompendo o deploy!"
+                exit 1
+              fi
               break
             fi
 
@@ -98,4 +103,3 @@ jobs:
             echo "Arquivo cypress-cloud-url.txt não encontrado!"
             exit 1
           fi
-
