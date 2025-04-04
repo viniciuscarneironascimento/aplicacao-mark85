@@ -10,21 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout do código da aplicação
+      - name: Clonar repositório da aplicação
         uses: actions/checkout@v3
-
-      - name: Simular Deploy da Aplicação
-        run: echo "Aplicação implantada com sucesso!"
 
       - name: Disparar casos de testes do repositório de testes (Cypress)
         id: trigger-tests
         uses: peter-evans/repository-dispatch@v2
         with:
-          repository: viniciuscarneironascimento/mark85-cypress-api-papito
+          repository: viniciuscarneironascimento/mark85-cypress-api-papito #Repositório apartado de testes Cypress
           event-type: run-cypress-tests
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }} # Se não funcionar usar o token do repositório de testes
 
-      - name: Aguardar execução da pipeline de testes e obter link do job
+      - name: Status da pipeline de testes
         id: wait-tests
         run: |
           echo "Aguardando execução da pipeline de testes..."
