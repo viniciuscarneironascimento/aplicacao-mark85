@@ -32,13 +32,12 @@ jobs:
           MAX_ATTEMPTS=30
           ATTEMPT=0
           RUN_ID=""
-          TESTS_FAILED=0
-
+          
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             sleep 30
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
-            RUN_ID=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.event == "repository_dispatch") | .id' | head -n 1)
-            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r ".workflow_runs[] | select(.id == $RUN_ID) | .conclusion" | head -n 1)
+            RUN_ID=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.event == "repository_dispatch" and .name == "Executar testes Cypress") | .id' | head -n 1)
+            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.id == '"$RUN_ID"') | .conclusion' | head -n 1)
 
             echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
 
@@ -48,8 +47,7 @@ jobs:
               break
             elif [[ "$LATEST_RUN_STATUS" == "failure" || "$LATEST_RUN_STATUS" == "cancelled" ]]; then
               echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
-              TESTS_FAILED=1
-              break
+              exit 1
             fi
 
             ATTEMPT=$((ATTEMPT+1))
@@ -57,10 +55,8 @@ jobs:
 
           if [[ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]]; then
             echo "Tempo limite excedido esperando a pipeline de testes. Interrompendo o deploy!"
-            TESTS_FAILED=1
+            exit 1
           fi
-
-          echo "TESTS_FAILED=$TESTS_FAILED" >> $GITHUB_ENV
 
       - name: Verificar RUN_ID antes de buscar link do job
         run: |
@@ -83,7 +79,7 @@ jobs:
           
           RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $JOBS_URL)
           
-          echo "Resposta da API: $RESPONSE"
+          echo "Resposta da API: $RESPONSE"  # Depuração
           
           JOB_ID=$(echo "$RESPONSE" | jq -r '.jobs[0].id')
           
@@ -97,7 +93,6 @@ jobs:
           echo "TEST_JOB_URL=$JOB_URL" >> $GITHUB_ENV
 
       - name: Deploy Final
-        if: env.TESTS_FAILED == '0'
         run: echo "Deploy finalizado com sucesso!"
 
       - name: Baixar relatórios do Mochawesome
