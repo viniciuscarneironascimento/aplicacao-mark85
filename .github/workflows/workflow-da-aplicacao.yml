@@ -3,7 +3,7 @@ name: Deploy da Aplicacao e Testes Cypress
 on:
   push:
     branches:
-      - main  # Dispara quando houver um push na branch main da aplicação
+      - main
 
 jobs:
   deploy:
@@ -25,25 +25,34 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}
 
       - name: Aguardar execução da pipeline de testes
+        id: wait-tests
         run: |
           echo "Aguardando execução da pipeline de testes..."
           STATUS_URL="https://api.github.com/repos/viniciuscarneironascimento/mark85-cypress-api-papito/actions/runs"
           MAX_ATTEMPTS=30
           ATTEMPT=0
+          RUN_ID=""
+          
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             sleep 30
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
-            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress" and .status == "completed") | .conclusion' | head -n 1)
+            RUN_ID=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress") | .id' | head -n 1)
+            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.id == '"$RUN_ID"') | .conclusion' | head -n 1)
+
             echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
+
             if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
               echo "Pipeline de testes finalizada com sucesso!"
+              echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
               break
             elif [[ "$LATEST_RUN_STATUS" == "failure" || "$LATEST_RUN_STATUS" == "cancelled" ]]; then
               echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
               exit 1
             fi
+
             ATTEMPT=$((ATTEMPT+1))
           done
+
           if [[ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]]; then
             echo "Tempo limite excedido esperando a pipeline de testes. Interrompendo o deploy!"
             exit 1
@@ -60,7 +69,8 @@ jobs:
           workflow: workflow-do-cypress.yml
           name: cypress-mochawesome-report
           path: mochawesome-reports
-          check_artifacts: true
+          run_id: ${{ env.RUN_ID }}
+          search_artifacts: true
 
       - name: Baixar link do Cypress Cloud
         uses: dawidd6/action-download-artifact@v2
@@ -70,7 +80,8 @@ jobs:
           workflow: workflow-do-cypress.yml
           name: cypress-cloud-url
           path: ./
-          check_artifacts: true
+          run_id: ${{ env.RUN_ID }}
+          search_artifacts: true
 
       - name: Exibir link do Cypress Cloud
         run: |
