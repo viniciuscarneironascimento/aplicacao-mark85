@@ -58,6 +58,14 @@ jobs:
             exit 1
           fi
 
+      - name: Verificar RUN_ID antes de buscar link do job
+        run: |
+          echo "RUN_ID atualmente salvo: ${{ env.RUN_ID }}"
+          if [[ -z "${{ env.RUN_ID }}" ]]; then
+            echo "ERRO: RUN_ID não foi definido corretamente!"
+            exit 1
+          fi
+
       - name: Obter link do job de testes Cypress
         id: get-test-job-link
         run: |
