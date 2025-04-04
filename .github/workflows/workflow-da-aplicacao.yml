@@ -37,14 +37,21 @@ jobs:
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             sleep 30
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN_APLICACAO }}" $STATUS_URL)
+            echo "Resposta da API do GitHub: $RESPONSE"
             RUN_ID=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.name == "Executar testes Cypress") | .id' | head -n 1)
-            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.id == '"$RUN_ID"') | .conclusion' | head -n 1)
+            
+            if [[ -z "$RUN_ID" || "$RUN_ID" == "null" ]]; then
+              echo "RUN_ID ainda não encontrado. Tentando novamente..."
+            else
+              echo "RUN_ID encontrado: $RUN_ID"
+              echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+            fi
 
+            LATEST_RUN_STATUS=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.id == '"$RUN_ID"') | .conclusion' | head -n 1)
             echo "Tentativa $((ATTEMPT+1)): Status atual - $LATEST_RUN_STATUS"
 
             if [[ "$LATEST_RUN_STATUS" == "success" ]]; then
               echo "Pipeline de testes finalizada com sucesso!"
-              echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
               break
             elif [[ "$LATEST_RUN_STATUS" == "failure" || "$LATEST_RUN_STATUS" == "cancelled" ]]; then
               echo "A pipeline de testes no Cypress falhou. Interrompendo o deploy!"
