@@ -1,4 +1,4 @@
-# 📦 Nome do Projeto: aplicacao-mark85 (public)
+# 📦 Projeto: aplicacao-mark85 (public)
 
 🔗 [Repositório no GitHub](https://github.com/viniciuscarneironascimento/aplicacao-mark85)
 
